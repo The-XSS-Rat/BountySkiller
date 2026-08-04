@@ -15,10 +15,12 @@ from datetime import datetime, timedelta, timezone
 from flask import Flask, jsonify, render_template_string, request, send_from_directory
 
 import sources as src
+from hunt_web import hunt_bp
 
 DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
 
 app = Flask(__name__)
+app.register_blueprint(hunt_bp)   # /hunt — multi-class bug bounty orchestration
 
 JOB = {
     "running": False,
@@ -156,7 +158,8 @@ PAGE = """
  .note{color:#7c8698;font-size:12px;margin-top:6px;min-height:16px}
 </style>
 <h1>Bug bounty hacktivity &amp; writeups → JSON</h1>
-<p>Pick a source, pick how far back to go, get a JSON file under <code>data/</code>.</p>
+<p>Pick a source, pick how far back to go, get a JSON file under <code>data/</code>.
+&nbsp;·&nbsp; <a href="/hunt">Hunt Buddy →</a></p>
 
 <label>Source</label>
 <select id="source" onchange="showNote()"></select>
