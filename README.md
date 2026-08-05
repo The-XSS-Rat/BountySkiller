@@ -1,7 +1,11 @@
-# BountySkiller — hacktivity & writeup collector
+# BountySkiller
 
-Flask app that pulls disclosed HackerOne hacktivity or bug bounty writeups from the
-last X months and writes them to JSON under `data/`.
+Flask app with two tools:
+
+1. **Hacktivity & writeup collector** (`/`) — pulls disclosed HackerOne hacktivity or bug
+   bounty writeups from the last X months into JSON under `data/`.
+2. **Hunt Buddy** (`/hunt`) — runs a full multi-class bug bounty hunt from one target
+   profile, in the browser.
 
 ```
 pip install -r requirements.txt
@@ -31,7 +35,41 @@ export GOOGLE_CSE_ID=...       # https://programmablesearchengine.google.com/
 
 Or pass `google_api_key` / `google_cse_id` as query params.
 
-## API
+## Hunt Buddy (`/hunt`)
+
+Browser front-end for the hunt orchestrator: paste a target profile, get a gap analysis,
+run every applicable bug-class module, watch progress, read ranked findings.
+
+```bash
+HUNT_TOOLS=~/Bounty/claude-bug-bounty/tools python3 app.py
+open http://127.0.0.1:5000/hunt
+```
+
+`HUNT_TOOLS` points at the [claude-bug-bounty](https://github.com/shuvonsec/claude-bug-bounty)
+`tools/` directory, which supplies the engines. It defaults to `~/Bounty/claude-bug-bounty/tools`.
+
+**Plan first.** The plan table shows every module, whether it can run, and the exact profile
+key missing if it cannot:
+
+| | module | class | missing input |
+|---|---|---|---|
+| RUN | `ssrf` | server-side request forgery | |
+| SKIP | `bac` | broken access control | needs 2 authenticated identities, profile has 0 |
+| SKIP | `jwt` | JWT forgery | no jwt token in the profile |
+
+A skipped module is never reported as clean.
+
+### Hunt API
+
+- `POST /api/hunt/plan` — body is the profile JSON; returns the module gap analysis. No traffic.
+- `POST /api/hunt/run` — `{"profile": {...}, "only": ["ssrf"], "dry_run": false}`
+- `GET  /api/hunt/status` — live log, per-module progress, findings so far
+- `GET  /api/hunt/report` — final ranked findings, plan, per-module errors
+
+Scope is enforced by the engines themselves: `scope.domains` is required, and a request
+outside it is blocked before the socket opens. The page refuses to start a run without one.
+
+## Collector API
 
 - `POST /api/fetch?source=all&months=6&program=nodejs&query=IDOR&min_bounty=500` — start job
 - `GET /api/sources` — dropdown contents
